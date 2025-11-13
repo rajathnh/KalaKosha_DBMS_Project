@@ -97,7 +97,7 @@ const start = async () => {
 
     // 2. Sync models with the database.
     // Creates tables if they don't exist based on your Sequelize models.
-    await sequelize.sync({ force: false });
+    await sequelize.sync({ force: true });
     console.log('All models were synchronized successfully.');
 
     server.listen(port, () => {

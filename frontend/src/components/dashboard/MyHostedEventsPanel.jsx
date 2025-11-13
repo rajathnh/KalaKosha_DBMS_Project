@@ -1,3 +1,5 @@
+// src/components/dashboard/MyHostedEventsPanel.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../../api/axios';
@@ -42,13 +44,16 @@ const MyHostedEventsPanel = () => {
       {events.length > 0 ? (
         <div className="artwork-grid"> {/* Reusing the same grid style */}
           {events.map((event) => (
-            <Link to={`/events/${event._id}`} key={event._id} className="artwork-card">
+            // --- FIX #1: Use the new primary key 'event_id' ---
+            <Link to={`/events/${event.event_id}`} key={event.event_id} className="artwork-card">
               <div className="artwork-card-image">
-                <img src={event.eventImage} alt={event.title} />
+                {/* --- FIX #2: Use 'image_url' --- */}
+                <img src={event.image_url} alt={event.title} />
               </div>
               <div className="artwork-card-info">
                 <h3>{event.title}</h3>
-                <p>Date: <strong>{new Date(event.startTime).toLocaleDateString()}</strong></p>
+                {/* --- FIX #3: Use 'event_date' --- */}
+                <p>Date: <strong>{new Date(event.event_date).toLocaleDateString()}</strong></p>
               </div>
             </Link>
           ))}

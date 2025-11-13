@@ -4,22 +4,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import apiClient from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import './SingleArtworkPage.css'; // Reusing the detailed page layout and styles
+import './SingleArtworkPage.css'; // Reusing the detailed page layout styles
 
 const SingleEventPage = () => {
   const { id: eventId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // State for the component
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
 
+  // Memoized function to fetch event data.
+  // It only depends on eventId, ensuring it's stable between renders.
   const fetchEvent = useCallback(async () => {
-    // Only show full page loader on initial load
-    if (!event) setLoading(true); 
-    
     try {
       const response = await apiClient.get(`/events/${eventId}`);
       setEvent(response.data.event);
@@ -27,39 +27,44 @@ const SingleEventPage = () => {
       setError('Failed to load event details. It may have been cancelled or removed.');
       console.error(err);
     } finally {
+      // Always set loading to false after the first fetch attempt
       setLoading(false);
     }
-  }, [eventId, event]);
+  }, [eventId]);
 
+  // Effect to fetch data on initial component load or when eventId changes.
   useEffect(() => {
+    setLoading(true); // Set loading true on initial mount or ID change
     fetchEvent();
-  }, [eventId]); // Fetch data only when eventId changes
+  }, [fetchEvent]);
 
-  // --- NEW REGISTRATION CHECK ---
-  // Check if the current user's ID is in the event's 'attendees' array
+  // Derived state: check if the current user's ID is in the event's attendees list.
   const isAlreadyRegistered = user && event?.attendees?.some(attendee => attendee.user_id === user.userId);
 
+  // Handler for the registration button click
   const handleRegister = async () => {
+    // If user is not logged in, redirect them to the login page
     if (!user) {
-      // Redirect to login, passing the current page as the location to return to
       navigate('/login', { state: { from: { pathname: `/events/${eventId}` } } });
       return;
     }
     
-    setIsRegistering(true);
+    setIsRegistering(true); // Show loading state on the button
     try {
-      // Call the backend endpoint to register the user for this event
+      // Call the backend endpoint to register for the event
       await apiClient.post(`/events/${eventId}/register`);
       
-      // On success, refetch the event data to update the UI
-      await fetchEvent(); 
+      // On success, refetch the event data to update the UI to show "Registered"
+      await fetchEvent();
     } catch (err) {
       alert(err.response?.data?.msg || 'Failed to register for the event.');
       console.error(err);
     } finally {
-      setIsRegistering(false);
+      setIsRegistering(false); // Hide loading state on the button
     }
   };
+
+  // --- Render Logic ---
 
   if (loading) {
     return <div className="container section text-center"><h2>Loading Event...</h2></div>;
@@ -78,8 +83,7 @@ const SingleEventPage = () => {
       <div className="container">
         <div className="artwork-main-layout">
           <div className="artwork-image-container">
-            {/* The image field name might be different, adjust if needed */}
-            <img src={event.image_url || '/placeholder-image.png'} alt={event.title} />
+            <img src={event.image_url} alt={event.title} />
           </div>
           <div className="artwork-details-container">
             <h1>{event.title}</h1>
@@ -87,24 +91,21 @@ const SingleEventPage = () => {
               Hosted by {event.host.username}
             </Link>
             
-            {/* Price field might not exist in simplified schema, handle gracefully */}
-            <p className="artwork-price">{event.price > 0 ? `$${event.price}` : 'Free Event'}</p>
-            
+            <p className="artwork-price">{Number(event.price) > 0 ? `$${Number(event.price).toFixed(2)}` : 'Free Event'}</p>
             <p className="artwork-description">{event.description}</p>
             
             <div className="artwork-meta">
+              {event.eventType && <span><strong>Event Type:</strong> {event.eventType}</span>}
               <span><strong>Date:</strong> {new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
               <span><strong>Time:</strong> {new Date(event.event_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             
-            {/* Show meeting link only if user is registered */}
             {event.meetingLink && isAlreadyRegistered && (
                <div className="artwork-meta" style={{marginTop: '1rem', backgroundColor: '#e8f5e9'}}>
                  <span><strong>Meeting Link:</strong> <a href={event.meetingLink} target="_blank" rel="noopener noreferrer" style={{color: 'var(--primary-color)', textDecoration: 'underline'}}>{event.meetingLink}</a></span>
                </div>
             )}
 
-            {/* --- DYNAMIC BUTTON LOGIC --- */}
             <div style={{marginTop: '2rem'}}>
               {isAlreadyRegistered ? (
                 <button className="btn btn-primary buy-button" disabled style={{backgroundColor: '#4CAF50', cursor: 'default'}}>
@@ -116,7 +117,6 @@ const SingleEventPage = () => {
                 </button>
               )}
             </div>
-            
           </div>
         </div>
       </div>

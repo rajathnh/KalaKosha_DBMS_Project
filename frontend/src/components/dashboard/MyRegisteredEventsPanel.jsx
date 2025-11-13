@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/axios';
 import '../../pages/ArtworkListPage.css'; // Reusing the gallery card styles
 import { Link } from 'react-router-dom';
+
 const MyRegisteredEventsPanel = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,14 +41,15 @@ const MyRegisteredEventsPanel = () => {
       {events.length > 0 ? (
         <div className="artwork-grid">
           {events.map((event) => (
-            <Link to={`/events/${event._id}`} key={event._id} className="artwork-card">
+            // --- FIX: Use the correct property names from the API ---
+            <Link to={`/events/${event.event_id}`} key={event.event_id} className="artwork-card">
               <div className="artwork-card-image">
-                <img src={event.eventImage} alt={event.title} />
+                <img src={event.image_url} alt={event.title} />
               </div>
               <div className="artwork-card-info">
                 <h3>{event.title}</h3>
-                <p>Hosted by <strong>{event.host.name}</strong></p>
-                <p>Date: <strong>{new Date(event.startTime).toLocaleDateString()}</strong></p>
+                <p>Hosted by <strong>{event.host.username}</strong></p>
+                <p>Date: <strong>{new Date(event.event_date).toLocaleDateString()}</strong></p>
               </div>
             </Link>
           ))}

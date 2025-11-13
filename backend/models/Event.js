@@ -20,6 +20,10 @@ const Event = sequelize.define('Event', {
         type: DataTypes.DATE,
         allowNull: false,
     },
+        image_url: {
+        type: DataTypes.STRING,
+        allowNull: false, // Since your controller requires an image, it should not be null
+    }
     // The host_id foreign key will be added via association with the User model.
 }, {
     tableName: 'events',
