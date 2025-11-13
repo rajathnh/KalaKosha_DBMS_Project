@@ -33,22 +33,26 @@ const MyCollectionPanel = () => {
       <p>All the artworks and courses you've purchased.</p>
       <hr style={{ margin: '1.5rem 0' }}/>
       {items.length > 0 ? (
-        <div className="artwork-grid">
-          {items.map((item) => (
-            <Link to={`/products/${item.product_id}`} key={item.product_id} className="artwork-card">
-              <div className="artwork-card-image-wrapper">
-                <img src={item.image_url} alt={item.title} />
-              </div>
-              <div className="artwork-card-content">
-                <h3 className="artwork-title">{item.title}</h3>
-                 <p className="artwork-artist">Type: {item.product_type}</p>
-              </div>
-            </Link>
-          ))}
+  <div className="artwork-grid">
+    {/* THE FIX IS HERE: We destructure the 'product' object from each 'item' */}
+    {items.map(({ product }) => (
+      <Link to={`/products/${product.product_id}`} key={product.product_id} className="artwork-card">
+        <div className="artwork-card-image-wrapper">
+          {/* Access properties through the nested 'product' object */}
+          <img src={product.image_url} alt={product.title} />
         </div>
-      ) : (
-        <p>You haven't purchased any items yet. <Link to="/products">Explore the gallery!</Link></p>
-      )}
+        <div className="artwork-card-content">
+          <h3 className="artwork-title">{product.title}</h3>
+          {/* The artist is even deeper: product.artist.username */}
+          {product.artist && <p className="artwork-artist">By: {product.artist.username}</p>}
+          <p className="artwork-artist">Type: {product.product_type}</p>
+        </div>
+      </Link>
+    ))}
+  </div>
+) : (
+  <p>You haven't purchased any items yet. <Link to="/products">Explore the gallery!</Link></p>
+)}
     </div>
   );
 };

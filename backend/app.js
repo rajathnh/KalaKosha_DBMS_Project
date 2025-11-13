@@ -14,7 +14,6 @@ const path = require("path");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const fileUpload = require('express-fileupload');
-const rateLimiter = require("express-rate-limit");
 const helmet = require("helmet");
 const cors = require("cors");
 const cloudinary = require('cloudinary').v2;
@@ -58,12 +57,7 @@ app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 
 // Rate Limiting to prevent brute-force attacks
-app.use(
-  rateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, 
-  })
-);
+
 
 // Parsers for JSON, URL-encoded data, and cookies
 app.use(express.json());

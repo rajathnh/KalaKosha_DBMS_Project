@@ -77,6 +77,34 @@ const createOrder = async (req, res) => {
         throw new CustomError.InternalServerError('Order creation failed. Please try again.');
     }
 };
+const getMyPurchasedItems = async (req, res) => {
+    // 1. Find all of the user's completed ('paid') orders
+    const orders = await Order.findAll({
+        where: { customer_id: req.user.userId, status: 'paid' }
+    });
+
+    if (!orders.length) {
+        return res.status(StatusCodes.OK).json({ items: [] });
+    }
+
+    const orderIds = orders.map(o => o.order_id);
+
+    // 2. Find all order items linked to those orders and populate product details
+    const items = await OrderItem.findAll({
+        where: { order_id: orderIds },
+        include: [{
+            model: Product,
+            as: 'product',
+            include: [{ // Also include the artist of the product
+                model: User,
+                as: 'artist',
+                attributes: ['username']
+            }]
+        }]
+    });
+
+    res.status(StatusCodes.OK).json({ items });
+};
 
 // --- GET CURRENT USER'S ORDER HISTORY ---
 const getCurrentUserOrders = async (req, res) => {
@@ -143,4 +171,5 @@ module.exports = {
     getCurrentUserOrders,
     getSingleOrder,
     getAllOrders,
+    getMyPurchasedItems
 };

@@ -13,6 +13,7 @@ const {
   getAllOrders,
   getSingleOrder,
   getCurrentUserOrders,
+  getMyPurchasedItems
 } = require('../controllers/orderController');
 
 
@@ -24,6 +25,7 @@ router.route('/')
 
 // Route for the current logged-in user to see their own order history.
 router.route('/my-orders').get(authenticateUser, getCurrentUserOrders);
+router.route('/my-collection').get(authenticateUser, getMyPurchasedItems); // <-- ADD THIS ROUTE
 
 
 // Route to view a single specific order.
