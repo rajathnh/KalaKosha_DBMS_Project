@@ -30,8 +30,8 @@ const updateProductRating = async (productId) => {
     // Now, update the products table with the new stats.
     await Product.update(
       {
-        averageRating: averageRating,
-        numOfReviews: numOfReviews,
+        average_rating: averageRating,
+        num_of_reviews: numOfReviews,
       },
       {
         where: { product_id: productId },

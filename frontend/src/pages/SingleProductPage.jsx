@@ -147,7 +147,7 @@ const SingleProductPage = () => {
                             {reviews.map(review => (
                                 <div key={review.review_id} className="review-card">
                                     {/* FIX: Added the title back */}
-                                    <h4>{review.title}</h4>
+                                    
                                     <p className="review-rating">Rating: {review.rating} / 5</p>
                                     <p className="review-comment">"{review.comment}"</p>
                                     {review.user && <p className="review-author">- {review.user.username}</p>}

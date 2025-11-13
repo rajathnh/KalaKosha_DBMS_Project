@@ -6,32 +6,30 @@ import './ReviewForm.css';
 
 const ReviewForm = ({ productId, onReviewSubmit }) => {
   const [rating, setRating] = useState(5);
-  const [title, setTitle] = useState(''); // <-- THE MISSING PIECE
+  // --- REMOVED --- title state is no longer needed
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Also check for title
-    if (!title || !comment) {
-      setError('Please provide a title and a comment.');
+    // --- UPDATED --- Simplified validation
+    if (!comment) {
+      setError('Please provide a comment.');
       return;
     }
     setError('');
     setIsSubmitting(true);
 
     try {
-      // The complete and correct payload
+      // --- UPDATED --- Payload no longer includes title
       await apiClient.post('/reviews', {
         productId: productId,
         rating: Number(rating),
-        title, // <-- ADDED BACK
         comment,
       });
 
-      // Clear all form fields and notify the parent component
-      setTitle('');
+      // --- UPDATED --- Clear only the fields that exist
       setComment('');
       setRating(5);
       onReviewSubmit();
@@ -57,19 +55,7 @@ const ReviewForm = ({ productId, onReviewSubmit }) => {
           </select>
         </div>
         
-        {/* --- THE MISSING INPUT FIELD --- */}
-        <div className="form-group">
-          <label htmlFor="title">Review Title</label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., A masterpiece!"
-            required
-          />
-        </div>
-        {/* --- END OF FIX --- */}
+        {/* --- REMOVED --- The entire title input field div is gone */}
 
         <div className="form-group">
           <label htmlFor="comment">Comment</label>
