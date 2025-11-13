@@ -9,7 +9,7 @@ const CreateEventPage = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    startTime: '',
+    event_date: '', // <-- CORRECTED: Changed 'startTime' to 'event_date'
     eventType: 'Talk', // Default value
     price: '0',
     meetingLink: '',
@@ -47,8 +47,8 @@ const CreateEventPage = () => {
       await apiClient.post('/events', submissionData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      // On success, redirect the artist to their events dashboard
-      navigate('/dashboard'); // Or you could have a dedicated state for the events panel
+      // On success, redirect the artist to their dashboard
+      navigate('/dashboard'); 
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to create the event.');
       console.error(err);
@@ -72,8 +72,9 @@ const CreateEventPage = () => {
             <textarea name="description" rows="5" onChange={handleChange} required />
           </div>
           <div className="form-group">
-            <label htmlFor="startTime">Date and Time</label>
-            <input type="datetime-local" name="startTime" onChange={handleChange} required />
+            <label htmlFor="event_date">Date and Time</label>
+            {/* <-- CORRECTED: Changed name attribute to 'event_date' --> */}
+            <input type="datetime-local" name="event_date" onChange={handleChange} required />
           </div>
           <div className="form-group">
             <label htmlFor="eventType">Event Type</label>

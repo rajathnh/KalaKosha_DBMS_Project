@@ -3,26 +3,25 @@ const { Event, EventAttendee, User } = require('../models');
 const { StatusCodes } = require('http-status-codes');
 const CustomError = require('../errors');
 const { checkPermissions } = require('../utils');
-
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 const { Op } = require('sequelize');
 
 // --- CREATE EVENT (Artist Only) ---
 const createEvent = async (req, res) => {
-    // Artist's ID comes from the authenticated user token
-    req.body.host_id = req.user.userId;
-    const { title, description, event_date } = req.body;
-
     // 1. Basic validation for text fields
+    const { title, description, event_date } = req.body;
     if (!title || !description || !event_date) {
         throw new CustomError.BadRequestError('Please provide title, description, and date for the event.');
     }
 
-    // 2. Validate that a file was uploaded
-    if (!req.files || !req.files.image) {
+    // 2. Validate that a file was uploaded under the correct key
+    // --- THE FIX IS HERE ---
+    if (!req.files || !req.files.eventImage) {
         throw new CustomError.BadRequestError('Please upload an event image.');
     }
 
-    const eventImage = req.files.image;
+    const eventImage = req.files.eventImage;
 
     // 3. (Optional but recommended) Validate image type
     if (!eventImage.mimetype.startsWith('image')) {
@@ -30,33 +29,32 @@ const createEvent = async (req, res) => {
     }
 
     // 4. Upload the image to Cloudinary
+    let result;
     try {
-        const result = await cloudinary.uploader.upload(
+        result = await cloudinary.uploader.upload(
             eventImage.tempFilePath,
             {
                 use_filename: true,
-                folder: 'kalakosha-events', // Organize uploads in a specific folder
-                resource_type: 'image',
+                folder: 'kalakosha-events-sql', // Organize uploads in a specific folder
             }
         );
-
-        // 5. Clean up the temporary file from the server's filesystem
-        fs.unlinkSync(eventImage.tempFilePath);
-
-        // 6. Add the secure image URL from Cloudinary to the request body
-        req.body.image_url = result.secure_url;
-        
     } catch (error) {
-        // If upload fails, make sure to clean up the temp file anyway
-        if (fs.existsSync(eventImage.tempFilePath)) {
-            fs.unlinkSync(eventImage.tempFilePath);
-        }
         console.error('Cloudinary upload failed:', error);
         throw new CustomError.InternalServerError('Image upload failed');
+    } finally {
+        // 5. Clean up the temporary file from the server's filesystem in all cases
+        fs.unlinkSync(eventImage.tempFilePath);
     }
 
-    // 7. Create the event in the database with the image URL
-    const event = await Event.create(req.body);
+    // 6. Prepare the final data object for database creation
+    const eventData = {
+        ...req.body,
+        host_id: req.user.userId, // Artist's ID comes from the authenticated user token
+        image_url: result.secure_url, // Add the secure image URL from Cloudinary
+    };
+    
+    // 7. Create the event in the database
+    const event = await Event.create(eventData);
     res.status(StatusCodes.CREATED).json({ event });
 };
 
