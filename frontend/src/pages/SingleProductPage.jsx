@@ -3,152 +3,151 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import apiClient from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import ReviewForm from '../components/ReviewForm';
-import './SingleArtworkPage.css'; // Reusing the same detailed page layout
+import ReviewForm from '../components/ReviewForm'; // We will refactor this component next
+import './SingleArtworkPage.css'; // We can reuse the existing detailed page styles
 
 const SingleProductPage = () => {
-  const { id: productId } = useParams();
-  const { user } = useAuth();
-  const navigate = useNavigate();
+    const { id: productId } = useParams(); // Get the generic 'id' from the URL
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
-  // State for data
-  const [product, setProduct] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  
-  // State for UI and interaction
-  const [purchaseStatus, setPurchaseStatus] = useState({ hasPurchased: false, hasReviewed: false });
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+    // State for all data and UI status
+    const [product, setProduct] = useState(null);
+    const [reviews, setReviews] = useState([]);
+    const [reviewStatus, setReviewStatus] = useState({ hasPurchased: false, hasReviewed: false });
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const productPromise = apiClient.get(`/products/${productId}`);
-      const reviewsPromise = apiClient.get(`/reviews/product/${productId}`);
-      
-      const [productResponse, reviewsResponse] = await Promise.all([productPromise, reviewsResponse]);
-      
-      setProduct(productResponse.data.product);
-      setReviews(reviewsResponse.data.reviews);
-      
-      // We no longer need a separate status check API call,
-      // this logic will be moved to the review controller for verification.
-      // For the frontend, we'll just check if they are logged in.
-      
-    } catch (err) {
-      setError('Failed to load product details. The item may no longer exist.');
-    } finally {
-      setLoading(false);
-    }
-  }, [productId]);
+    // Memoized function to fetch all necessary data for the page
+    const fetchData = useCallback(async () => {
+        try {
+            // Fetch product details from the new unified endpoint
+            const productResponse = await apiClient.get(`/products/${productId}`);
+            const fetchedProduct = productResponse.data.product;
+            setProduct(fetchedProduct);
 
-  useEffect(() => {
-    setLoading(true);
-    fetchData();
-  }, [fetchData]);
+            // Fetch reviews for this specific product
+            const reviewsResponse = await apiClient.get(`/reviews/product/${productId}`);
+            setReviews(reviewsResponse.data.reviews);
 
-  const handleActionClick = () => {
-    // Both "Buy Now" and "Enroll Now" lead to the same checkout page
-    const checkoutUrl = `/checkout/${productId}`;
-    if (!user) {
-      navigate('/login', { state: { from: { pathname: checkoutUrl } } });
-    } else {
-      navigate(checkoutUrl);
-    }
-  };
+            // If a user is logged in, check if they can review this product
+            if (user) {
+                // This logic is now handled by the backend's review controller and purchase verification
+                // To display the "Leave a review" button, we need a simple status check.
+                // Let's assume for now that if they can review, they've purchased. We'll simplify the review form.
+            }
+        } catch (err) {
+            setError('Failed to load product details. The item may no longer exist.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [productId, user]);
 
-  const handleReviewSubmitted = async () => {
-    setShowReviewForm(false);
-    await fetchData(); // Refresh reviews from server
-  };
+    useEffect(() => {
+        setLoading(true);
+        fetchData();
+    }, [fetchData]);
 
-  if (loading) return <div className="container section"><h2>Loading Product...</h2></div>;
-  if (error) return <div className="container section"><p className="error-message">{error}</p></div>;
-  if (!product) return null;
+    const handleBuyNow = () => {
+        const checkoutUrl = `/checkout/${productId}`;
+        if (!user) {
+            navigate('/login', { state: { from: { pathname: checkoutUrl } } });
+        } else {
+            navigate(checkoutUrl);
+        }
+    };
 
-  // Simplified check: Can the user *potentially* leave a review?
-  // The backend will do the final verification of purchase.
-  const canPotentiallyReview = user; 
+    const handleReviewSubmitted = () => {
+        setShowReviewForm(false);
+        fetchData(); // Refresh all data after a review is submitted
+    };
+    
+    // --- Render Logic ---
 
-  return (
-    <div className="single-artwork-page section">
-      <div className="container">
-        <div className="artwork-main-layout">
-          <div className="artwork-image-container">
-            <img src={product.image_url} alt={product.title} />
-          </div>
-          <div className="artwork-details-container">
-            <h1>{product.title}</h1>
-            {product.artist && (
-                <Link to={`/artists/${product.artist.user_id}`} className="artist-link">
-                    By {product.artist.username}
-                </Link>
-            )}
-            <p className="artwork-price">${product.price}</p>
-            <p className="artwork-description">{product.description}</p>
-            
-            <div className="artwork-meta">
-              {/* --- DYNAMIC DETAILS RENDER --- */}
-              {product.product_type === 'artwork' ? (
-                <>
-                  <span><strong>Art Form:</strong> {product.artForm || 'N/A'}</span>
-                  <span><strong>Status:</strong> {product.status === 'for_sale' ? 'For Sale' : 'Sold'}</span>
-                </>
-              ) : (
-                <>
-                  <span><strong>Art Form:</strong> {product.artForm || 'N/A'}</span>
-                  {/* <span><strong>Difficulty:</strong> {product.difficulty || 'N/A'}</span> */}
-                </>
-              )}
-            </div>
+    if (loading) return <div className="container section text-center"><h2>Loading Product...</h2></div>;
+    if (error) return <div className="container section text-center"><p className="error-message">{error}</p></div>;
+    if (!product) return <div className="container section text-center"><h2>Product not found.</h2></div>;
 
-            {/* --- DYNAMIC ACTION BUTTON --- */}
-            {product.status !== 'sold' && (
-              <button onClick={handleActionClick} className="btn btn-primary buy-button">
-                {product.product_type === 'artwork' ? 'Buy Now' : 'Enroll Now'}
-              </button>
-            )}
-            {product.status === 'sold' && (
-              <p className="sold-notice">This artwork has been sold.</p>
-            )}
-          </div>
-        </div>
+    // Determine if the user has purchased this item (a simplified check for the UI)
+    // A full implementation would require a dedicated endpoint `/orders/status/:productId`
+    // For now, let's assume if they can't review yet, they should see the button if logged in.
+    const canPotentiallyReview = user && !reviews.some(r => r.user_id === user.userId);
 
-        <div className="artwork-reviews-section">
-          <h2>Reviews ({reviews.length})</h2>
 
-          {canPotentiallyReview && !showReviewForm && (
-            <div className="review-prompt">
-              <button onClick={() => setShowReviewForm(true)} className="btn btn-outline">
-                Leave a Review
-              </button>
-            </div>
-          )}
-
-          {canPotentiallyReview && showReviewForm && (
-            <ReviewForm 
-              productId={productId} 
-              onReviewSubmit={handleReviewSubmitted}
-            />
-          )}
-
-          {reviews.length > 0 ? (
-            <div className="reviews-list">
-              {reviews.map(review => (
-                <div key={review.review_id} className="review-card">
-                  <p className="review-rating">Rating: {review.rating} / 5</p>
-                  <p className="review-comment">"{review.comment}"</p>
-                  {review.user && <p className="review-author">- {review.user.username}</p>}
+    return (
+        <div className="single-artwork-page section">
+            <div className="container">
+                <div className="artwork-main-layout">
+                    <div className="artwork-image-container">
+                        <img src={product.image_url} alt={product.title} />
+                    </div>
+                    <div className="artwork-details-container">
+                        <h1>{product.title}</h1>
+                        <Link to={`/artists/${product.artist.user_id}`} className="artist-link">
+                            By {product.artist.username}
+                        </Link>
+                        <p className="artwork-price">${product.price}</p>
+                        <p className="artwork-description">{product.description}</p>
+                        
+                        <div className="artwork-meta">
+                            {product.product_type === 'artwork' ? (
+                                <span><strong>Art Form:</strong> {product.artForm}</span>
+                            ) : (
+                                <span><strong>Difficulty:</strong> {product.difficulty}</span>
+                            )}
+                            <span><strong>Rating:</strong> ⭐ {Number(product.average_rating).toFixed(1)} ({reviews.length} reviews)</span>
+                        </div>
+                        
+                        <button onClick={handleBuyNow} className="btn btn-primary buy-button">
+                            {product.product_type === 'artwork' ? 'Buy Now' : 'Enroll Now'}
+                        </button>
+                    </div>
                 </div>
-              ))}
+
+                <div className="artwork-reviews-section">
+                    <h2>Reviews ({reviews.length})</h2>
+
+                    {canPotentiallyReview && !showReviewForm && (
+                        <div className="review-prompt">
+                            <button onClick={() => setShowReviewForm(true)} className="btn btn-outline">
+                                Purchased this item? Leave a Review
+                            </button>
+                        </div>
+                    )}
+
+                    {canPotentiallyReview && showReviewForm && (
+                        <ReviewForm 
+                          productId={productId} 
+                          onReviewSubmit={handleReviewSubmitted}
+                        />
+                    )}
+                    
+                    {!canPotentiallyReview && user && (
+                         <div className="review-prompt">
+                            <p><strong>Thank you! You've already reviewed this item.</strong></p>
+                        </div>
+                    )}
+
+                    {reviews.length > 0 ? (
+                        <div className="reviews-list">
+                            {reviews.map(review => (
+                                <div key={review.review_id} className="review-card">
+                                    {/* The simplified review model doesn't have a title */}
+                                    <p className="review-rating">Rating: {review.rating} / 5</p>
+                                    <p className="review-comment">"{review.comment}"</p>
+                                    <p className="review-author">- {review.user?.username || 'Anonymous'}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center">No reviews yet for this product.</p>
+                    )}
+                </div>
             </div>
-          ) : (
-            <p className="text-center">No reviews yet for this product.</p>
-          )}
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default SingleProductPage;
